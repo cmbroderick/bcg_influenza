@@ -1,6 +1,6 @@
 #################################################
 
-#Analysis for BCG-influenza paper
+# Analysis for BCG-influenza paper
 
 ################################################
 
@@ -26,25 +26,22 @@ library(maSigPro)
 library(MASS)
 ############################
 
-#Read in data
+# Read in and prepare the data
 
 ###########################
 
 
-##Read in the metadata and counts
+## Read in  the metadata and counts
 meta<- read.csv("metadata_bcg_flu.csv", header=TRUE)
 row.names(meta)<- meta$StoredSampleID
-
 counts<-read.csv("gene_counts_matrix.csv", header=TRUE)
 row.names(counts) <- counts$X
 counts<- counts[,-1]
 
-##Ensure the Sample IDs are in the same order in both the  counts and metadata
-
+## Ensure the Sample IDs are in the same order in both the  counts and metadata
 identical(row.names(meta), colnames(counts))   
 
-
-##Prepare the metadata
+## Prepare the metadata
 meta$BCG<- as.factor(meta$BCG)
 meta$Influenza<- as.factor(meta$Influenza)
 meta$Influenza <- ordered(meta$Influenza, levels = c("Pre", "Post"))
@@ -58,8 +55,8 @@ meta$changeGr<-ordered(meta$changeGr, levels=c("Down", "Up"))
 meta$Time.point<- as.numeric(meta$Time.point)
 
 
-##Read in cibersort data and combine with metadata (cibersort data was generated using the normalised counts)
-ciber2<- read.csv("CIBERSORTx_relative_1000permutations_8Sept.csv", header=TRUE)
+## Read in cibersort data and combine with metadata (cibersort data was generated using the normalised counts below at https://cibersortx.stanford.edu/)
+ciber2<- read.csv("CIBERSORTx.csv", header=TRUE)
 row.names(ciber2)<-ciber2$Mixture
 ciber2<-ciber2[,-1]
 meta<-meta[order(meta$StoredSampleID),]
@@ -67,7 +64,7 @@ ciber2<-ciber2[order(row.names(ciber2)),]
 identical(row.names(meta), row.names(ciber2))   
 ciber<-cbind(ciber2, meta)
 
-##Sum the totals for each main cell type
+## Sum the totals for each main cell type
 ciber$Macrophages_total<- (ciber$Macrophages.M0 + ciber$Macrophages.M1 +ciber$Macrophages.M2)
 ciber$CD4_total<- (ciber$T.cells.CD4.naive + ciber$T.cells.CD4.memory.resting + ciber$T.cells.CD4.memory.activated + 
                      ciber$T.cells.follicular.helper + ciber$T.cells.regulatory..Tregs) 
@@ -77,13 +74,13 @@ ciber$mast_total<- (ciber$Mast.cells.activated + ciber$Mast.cells.resting)
 ciber$TotalLymphocytes<- (ciber$B.cells.naive + ciber$B.cells.memory + ciber$Plasma.cells+ciber$T.cells.CD4.naive + ciber$T.cells.CD4.memory.resting + ciber$T.cells.CD4.memory.activated + 
                             ciber$T.cells.follicular.helper + ciber$T.cells.regulatory..Tregs + ciber$T.cells.CD8 + ciber$NK.cells.resting + ciber$NK.cells.activated) #Total lymphocyte fraction
 ciber$TotalMonocytes<- (ciber$Monocytes + ciber$Macrophages.M0 + ciber$Macrophages.M1 +ciber$Macrophages.M2+ ciber$Dendritic.cells.resting+ ciber$Dendritic.cells.activated) #Total monocyte fraction
+ciber$Neutrophils <- ciber$Neutrophils
 meta_original<-meta
 meta<-ciber
 
-
 ##############################################
 
-#Filter the counts
+# Filter the counts
 
 #############################################
 
@@ -114,28 +111,32 @@ rm(mart)
 
 
 ############################################################
-#normalise the data in DESeq2
 
-###ensure rownames of metadata and colnames of counts are in the same order
+# Normalise the data in DESeq2
 
+############################################################
+
+## Ensure rownames of metadata and colnames of counts are in the same order
 counts<-selectedCounts
 identical(row.names(meta), colnames(counts))
 
-#Create DESEq2 object
+##Create DESeq2 object
 des.obj <- DESeqDataSetFromMatrix(countData = counts,
                                   colData = meta,
                                   design = ~1)
 colnames(des.obj) <- colnames(counts)
 
 
-# Remove lowly expressed
+## Remove lowly expressed
 keep <- rowSums(counts(des.obj) >= 20 ) >= 3
 des.obj <- des.obj[keep,] 
 des.obj <- estimateSizeFactors(des.obj)
 
 
 ###################################################
+
 #PCA
+
 ##################################################
 
 PCA_counts<-counts(des.obj, normalized = TRUE)
@@ -147,9 +148,9 @@ PCAdata<- as.data.frame(PCAdata[,1:22632])
 pca.obj1 <- prcomp(PCAdata)
 summary(pca.obj1)
 
-#Plot PC1 and 2
+# Plot PC1 and 2
 dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= alldata$Sex, "Timepoint"= alldata$Time.point_factor, "Plate"= alldata$Plate_new, "ID"=alldata$StoredSampleID, "dGR" =alldata$change.GR, pca.obj1$x[,1:2])
-#Plate
+# Plate
 (p1<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Plate), show.legend = TRUE) + 
     stat_ellipse(aes(x = PC1, y = PC2, col = Plate))+
@@ -163,7 +164,7 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#BCG 
+# BCG 
 (p2<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = BCG), show.legend = TRUE) + 
     labs(title="B", colour="BCG") +
@@ -177,7 +178,7 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Influenza
+# Influenza
 (p3<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Influenza), show.legend = TRUE) + 
     labs(title="C", colour="Influenza") +
@@ -190,7 +191,7 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Timepoint
+# Timepoint
 (p4<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Timepoint), show.legend = TRUE) + 
     labs(title="D", colour="Timepoint (h)") +
@@ -202,7 +203,7 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Sex
+# Sex
 (p5<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Sex), show.legend = TRUE) + 
     labs(title="E", colour="Sex") +
@@ -215,7 +216,7 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Change in growth ratio
+# Change in growth ratio
 (p6<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = dGR), show.legend = TRUE) + 
     labs(title="F", colour="Change in Growth Ratio (%)") +
@@ -228,10 +229,10 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#PC 3 and 4
+# PC 3 and 4
 dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= alldata$Sex, "Timepoint"= alldata$Time.point_factor, "Plate"= alldata$Plate_new, "ID"= alldata$StoredSampleID, "dGR" =alldata$change.GR, pca.obj1$x[,3:4])
 
-#Plate
+# Plate
 (p11<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Plate), show.legend = TRUE) + 
     xlim(-120, 120)+
@@ -246,7 +247,7 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#BCG
+# BCG
 (p12<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = BCG), show.legend = TRUE) + 
     labs(title="B", colour="BCG") +
@@ -260,7 +261,7 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Influenza
+# Influenza
 (p13<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Influenza), show.legend = TRUE) + 
     labs(title="C", colour="Influenza") +
@@ -274,7 +275,7 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Timepoint
+# Timepoint
 (p14<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Timepoint), show.legend = TRUE) + 
     labs(title="D", colour="Timepoint (h)") +
@@ -287,7 +288,7 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Sex
+# Sex
 (p15<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Sex), show.legend = TRUE) + 
     xlim(-120, 120)+
@@ -301,7 +302,7 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Change in growth ratio
+# Change in growth ratio
 (p16<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = dGR), show.legend = TRUE) + 
     xlim(-120, 120)+
@@ -314,10 +315,10 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#PC 5 and 6
+# PC 5 and 6
 dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= alldata$Sex, "Timepoint"= alldata$Time.point_factor, "Plate"= alldata$Plate_new, "ID"= alldata$StoredSampleID, "dGR" =alldata$change.GR,  pca.obj1$x[,5:6])
 
-#Plate
+# Plate
 (p21<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Plate), show.legend = TRUE) + 
     labs(title="A", colour="Plate") +
@@ -330,7 +331,7 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#BCG
+# BCG
 (p22<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = BCG), show.legend = TRUE) + 
     labs(title="B", colour="BCG") +
@@ -344,7 +345,7 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Influenza
+# Influenza
 (p23<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Influenza), show.legend = TRUE) + 
     labs(title="C", colour="Influenza") +
@@ -358,7 +359,7 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Timepoint
+# Timepoint
 (p24<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Timepoint), show.legend = TRUE) + 
     labs(title="D", colour="Timepoint (h)") +
@@ -371,7 +372,7 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Sex
+# Sex
 (p25<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Sex), show.legend = TRUE) + 
     xlim(-70, 70)+
@@ -385,7 +386,7 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Change in growth ratio
+# Change in growth ratio
 (p26<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = dGR), show.legend = TRUE) + 
     xlim(-70, 70)+
@@ -398,7 +399,7 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-#Plot all together
+# Plot all together
 pc1_2 <- grid.arrange(arrangeGrob(p1, p2, p3, 
                                   p4, p5,p6, nrow=3, ncol=2))
 
@@ -409,7 +410,7 @@ pc5_6 <- grid.arrange(arrangeGrob(p21, p22, p23,
                                   p24, p25, p26, nrow=3, ncol=2))
 
 
-#Evaluate genes driving PC 1- 6
+# Evaluate genes driving PC 1- 6
 res.pca <- PCA(PCA_counts, scale.unit = FALSE, ncp = 6, graph = FALSE)
 genes_contributions <- data.frame(res.pca$var$contrib)
 genes_contributions_pca_1_ordered <- genes_contributions[order(-genes_contributions$Dim.1),]
@@ -423,14 +424,14 @@ genes_contributions_pca_1_ordered <- genes_contributions[order(-genes_contributi
 #########################################################
 
 
-#The dataset is divided into 4 subsets based on BCG-influenza status:
-#    Preinfluenza-BCG uninfected/Postinfluenza-BCG uninfected/ Preinfluenza-BCG infected/Postinfluenza-BCG infected 
-#In each subset, as well as the complete dataset, the genes that change significantly with Timepoint are identified using DESeq
-#These genes lists are then combined and the resulting list of unique genes that change with time is used to select genes to take forwards for the analyses
+# The dataset is divided into 4 subsets based on BCG-influenza status:
+# Preinfluenza-BCG uninfected/Postinfluenza-BCG uninfected/ Preinfluenza-BCG infected/Postinfluenza-BCG infected 
+# In each subset, as well as the complete dataset, the genes that are associated significantly with Timepoint are identified using DESeq
+# The union of these temporally variable genes form the gene set for the subsequent analyses, following one additional filtering step of lowly expressed counts.
 
 des.obj_original<-des.obj
 
-#BCG uninfected, pre flu
+# BCG uninfected, pre flu
 unPre<- meta$StoredSampleID[meta$BCG.Influenza== "Uninfected.Pre"]
 meta_unPre<<- meta[meta$StoredSampleID %in% unPre,]
 des_unPre<- des.obj_original[, unPre]
@@ -446,7 +447,7 @@ res_unPre <- results(des_unPre,
                      contrast=list(c("Time.point")))
 resOrdered_unPre <- res_unPre[order(res_unPre$padj),]
 
-#BCG uninfected, post flu
+# BCG uninfected, post flu
 unPost<- meta$StoredSampleID[meta$BCG.Influenza== "Uninfected.Post"]
 meta_unPost<<- meta[meta$StoredSampleID %in% unPost,]
 des_unPost<- des.obj_original[, unPost]
@@ -462,7 +463,7 @@ res_unPost <- results(des_unPost,
                       contrast=list(c("Time.point")))
 resOrdered_unPost <- res_unPost[order(res_unPost$padj),]
 
-#BCG infected, pre flu
+# BCG infected, pre flu
 inPre<- meta$StoredSampleID[meta$BCG.Influenza== "Infected.Pre"]
 meta_inPre<<- meta[meta$StoredSampleID %in% inPre,]
 des_inPre<- des.obj_original[, inPre]
@@ -478,7 +479,7 @@ res_inPre <- results(des_inPre,
                      contrast=list(c("Time.point")))
 resOrdered_inPre <- res_inPre[order(res_inPre$padj),]
 
-#BCG infected, post flu
+# BCG infected, post flu
 inPost<- meta$StoredSampleID[meta$BCG.Influenza== "Infected.Post"]
 meta_inPost<<- meta[meta$StoredSampleID %in% unPost,]
 des_inPost<- des.obj_original[, inPost]
@@ -494,7 +495,7 @@ res_inPost <- results(des_inPost,
                       contrast=list(c("Time.point")))
 resOrdered_inPost <- res_inPost[order(res_inPost$padj),]
 
-#all samples
+# All samples
 des_allSamples<-des.obj_original
 mm <- model.matrix(~BCG+ Time.point+ Influenza_un, data = data.frame(colData(des_allSamples)))
 design(des_allSamples) <- mm
@@ -508,7 +509,7 @@ res_all <- results(des_allSamples,
                    contrast=list(c("Time.point")))
 resOrdered_all <- res_all[order(res_all$padj),]
 
-##now combine the genes into one list of unqiue genes
+# Combine the genes into one list of unqiue genes
 unPre_sig<- row.names(resOrdered_unPre)[resOrdered_unPre$padj<0.05]
 unPost_sig<- row.names(resOrdered_unPost)[resOrdered_unPost$padj<0.05]
 inPre_sig<- row.names(resOrdered_inPre)[resOrdered_inPre$padj<0.05]
@@ -519,21 +520,20 @@ combo<- c(unPre_sig,unPost_sig, inPre_sig,inPost_sig, all_sig  )
 TimeGenes<- unique(combo)
 isUnique(TimeGenes)
 keep<- row.names(counts(des.obj_original)) %in% TimeGenes 
-des.obj_i<-des.obj_original[keep,] #This is the DESeq object to be used in the paired DESeq2 analysis
+des.obj_i<-des.obj_original[keep,] 
 
 
 ############################################################
 
-#Paired DESeq2 analysis to identify BCG: influenza interaction genes
+## Paired DESeq2 analysis to identify BCG: influenza interaction genes
 
 ###########################################################
 
-#Select samples from 0, 6, 24 h timepoints and exclude the 2 subjects with incomplete sample sets
+# Select samples from 0, 6, 24 h timepoints and exclude the 2 subjects with incomplete sample sets
 select<-meta$StoredSampleID[(meta$Time.point=="0" | meta$Time.point=="6" | meta$Time.point=="24") & meta$Patient.ID !="H" & meta$Patient.ID !="O"]
 meta<- meta[meta$StoredSampleID %in% select,]
 des_all<-des.obj_i[,select]
 identical(row.names(meta), colnames(des_all))
-
 des_all$Influenza_un<- relevel(des_all$Influenza_un, ref= "Pre")
 des_all$BCG<- relevel(des_all$BCG, ref= "No")
 
@@ -542,48 +542,40 @@ keep2 <- rowSums(counts(des_all) >= 30 ) >= 5
 des_all <- des_all[keep2,]  
 des_all_original<- des_all
 
-#Update design with the experimental model. Two different models are employed:
+# Update design with the experimental model. Two different models are employed:
 
 # 1) without correction for imputed cell fractions
 des_all<-des_all_original
-mm <- model.matrix(~ Patient.ID+ BCG+ Time.point + Influenza_un + Influenza_un:BCG + Time.point:BCG , data = data.frame(colData(des_all)))
+mm <- model.matrix(~ Patient.ID+ BCG+ Time.point + Influenza_un +  BCG:Influenza_un + BCG:Time.point , data = data.frame(colData(des_all)))
 design(des_all) <- mm
 
 #2) with correction for imputed cell fractions
 des_all<-des_all_original
-mm <- model.matrix(~ Patient.ID+ BCG+ Time.point+ TotalLymphocytes + TotalMonocytes + Neutrophils + Influenza_un + Influenza_un:BCG + Time.point:BCG , data = data.frame(colData(des_all)))
+mm <- model.matrix(~ Patient.ID+ BCG+ Time.point+ TotalLymphocytes + TotalMonocytes + Neutrophils + Influenza_un + BCG:Influenza_un + BCG:Time.point , data = data.frame(colData(des_all)))
 design(des_all) <- mm
 
-#For each of the two models, run DESeq2
+# For each of the two models, run DESeq2
 des_all<- DESeq(des_all)
 des_all<- des_all[which(mcols(des_all)$betaConv),] 
 
+# Extract results for comparisons of interest
 
-#Extract results for comparisons of interest
-
-#BCG 
+# BCG 
 res <- results(des_all,
                independentFiltering=TRUE,
                alpha=0.05,
                pAdjustMethod="BH",
                parallel=FALSE,
                contrast=list(c("BCGYes")))
-#Influenza
+# Influenza
 res <- results(des_all,
                independentFiltering=TRUE,
                alpha=0.05,
                pAdjustMethod="BH",
                parallel=FALSE,
                contrast=list(c("Influenza_unPost")))
-#Timepoint
-res <- results(des_all,
-               independentFiltering=TRUE,
-               alpha=0.05,
-               pAdjustMethod="BH",
-               parallel=FALSE,
-               contrast=list(c("Time.point")))
 
-#BCG:Influenza interaction
+# BCG:Influenza interaction
 res <- results(des_all,
                independentFiltering=TRUE,
                alpha=0.05,
@@ -591,36 +583,13 @@ res <- results(des_all,
                parallel=FALSE,
                name="BCGYes.Influenza_unPost")
 
-#BCG:Timepoint interaction
-res <- results(des_all,
-               independentFiltering=TRUE,
-               alpha=0.05,
-               pAdjustMethod="BH",
-               parallel=FALSE,
-               name="BCGYes.Time.point")
 
-#BCG plus BCG:Influenza interaction
-res <- results(des_all,
-               independentFiltering=TRUE,
-               alpha=0.05,
-               pAdjustMethod="BH",
-               parallel=FALSE,
-               contrast=list(c("BCGYes", "BCGYes.Influenza_unPost")))
-
-#BCG plus BCG:Timepoint interaction
-res <- results(des_all,
-               independentFiltering=TRUE,
-               alpha=0.05,
-               pAdjustMethod="BH",
-               parallel=FALSE,
-               contrast=list(c("BCGYes", "BCGYes.Time.point")))
-
-#for each results table, order by adjusted p value 
+# For each results table, order by adjusted p value 
 resOrdered <- res[order(res$padj),]
 summary(res)   
 sum(res$padj < 0.05, na.rm=TRUE) # 
 
-#Annotate each results file
+# Annotate each results file
 mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
 geneNames<-as.matrix(row.names(counts))
 row.names(geneNames)<- geneNames
@@ -638,14 +607,16 @@ Annotate_Data<-function(mytable){
 
 output<-Annotate_Data(resOrdered)
 
-#Then export for pathway analysis using IPA. 
+# Then export for pathway analysis using IPA. 
 
 ##################################################
 
-#Plot interaction genes
+# Plot interaction genes
 
 ################################################
-#Heatmap to visualise the BCG: Influenza interaction genes
+
+# Heatmap to visualise the BCG: Influenza interaction genes
+
 library(pheatmap)
 
 logf<- read.csv("Significant interaction genes_LFC.csv") #load dataframe containing LFC of the interaction genes
@@ -662,11 +633,10 @@ colnames(x) <- c("Influenza", "BCG", "BCG:Influenza interaction", "BCG with back
 (p<- pheatmap(y, display_numbers = x, cluster_row = TRUE,cluster_cols=FALSE, cellwidth = 33, cellheight = 6, fontsize = 6,main = "",
               legend_breaks = c(-4, -2,0, 2, 4, max(test)), legend_labels = c("-4", "-2", "0", "+2", "+4", "LFC\n")))
 
-#Plot gene IFI44L
 
-###get the data ready
-#use the same DESeq2 object at the paired DESeq2 analysis
-#Extract the normalised counts and combine with the metadata file
+# Plot gene IFI44L
+
+# Prepare the data- uses the same DESeq2 object at the paired DESeq2 analysis. Extract the normalised counts and combine with the metadata file
 normalisedCounts<-counts(des_all, normalized = TRUE)
 df<-as.data.frame(t(normalisedCounts))
 metaPlots<-meta[order(row.names(meta)),]
@@ -674,13 +644,13 @@ df<-df[order(row.names(df)),]
 identical(row.names(metaPlots), rownames(df))  
 PlotsData<-cbind(df, metaPlots)
 
-#Subset the dataset
+# Subset the dataset for plotting
 x6un<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$BCG == "No",] #6 h timepoint, BCG uninfected only
 x6pre<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Pre",] #6 h timepoint,Pre-influenza only
 x6post<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Post",] #6 h timepoint,Post-influenza only
 
 
-#Plot the effect of influenza on IFI44L expressoin
+# Plot the effect of influenza on IFI44L expressoin
 (p1<-ggplot(x6un, aes(x=BCG.Influenza, y=ENSG00000137959, fill=Influenza)) +
     geom_boxplot(width=0.3, outlier.colour = "white")+
     theme_bw() + 
@@ -699,7 +669,7 @@ x6post<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Po
     theme(legend.text = element_text(size = 12)) +
     theme(plot.title = element_text(color="black", size=16, face="bold")))
 
-#Plot the effect of BCG on IFI44L expression
+# Plot the effect of BCG on IFI44L expression
 (p2<-ggplot(x6pre, aes(x=BCG.Influenza, y=ENSG00000137959, fill=BCG.Influenza)) +
     geom_boxplot(width=0.3,show.legend = FALSE, outlier.colour = "white")+
     theme_bw() + 
@@ -718,7 +688,7 @@ x6post<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Po
     theme(legend.text = element_text(size = 12)) +
     theme(plot.title = element_text(color="black", size=16, face="bold")))
 
-#Plot the effect of BCG with flu on IFI44L expression
+# Plot the effect of BCG with background influenza on IFI44L expression
 (p3<-ggplot(x6post, aes(x=BCG.Influenza, y=ENSG00000137959, fill=BCG.Influenza)) +
     geom_boxplot(width=0.3, show.legend = FALSE,outlier.colour = "white")+
     theme_bw() + 
@@ -737,7 +707,7 @@ x6post<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Po
     theme(legend.text = element_text(size = 12)) +
     theme(plot.title = element_text(color="black", size=16, face="bold")))
 
-#Arrange the plots together
+# Arrange the plots together
 get_legend<-function(a.gplot){
   tmp <- ggplot_gtable(ggplot_build(a.gplot))
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
@@ -746,7 +716,6 @@ get_legend<-function(a.gplot){
 
 mylegend1<-get_legend(p1)
 mylegend2<-get_legend(p2)
-
 blankPlot <- ggplot()+geom_blank(aes(1,1)) + 
   cowplot::theme_nothing()
 
@@ -760,63 +729,61 @@ z <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                               widths = c(3,3,3), heights= c(3,1)))
 
 
-#Effect of influenza on IFI44L expression  
+# Compare IFI44L expression between the different conditions
+
+# Effect of influenza on IFI44L expression  
 stat.test_1 <- x6un %>%
   group_by ( BCG)%>%
   wilcox_test(ENSG00000137959 ~ Influenza, paired = TRUE, alternative="two.sided")
 
-
-#Effect of BCG on IFI44L expression
+# Effect of BCG on IFI44L expression
 stat.test_2 <- x6pre %>%
   group_by ( Influenza)%>%
   wilcox_test(ENSG00000137959 ~ BCG, paired = TRUE, alternative="two.sided")
 
-#Effect of BCG with flu on IFI44L expression
+# Effect of BCG with background influenza on IFI44L expression
 stat.test_3 <- x6post %>%
   group_by ( Influenza)%>%
   wilcox_test(ENSG00000137959 ~ BCG, paired = TRUE, alternative="two.sided")
 
-
-#Adjust for multiple testing
+# Adjust for multiple testing
 pvalues<- c(stat.test_1$p,stat.test_2$p, stat.test_3$p)
 adj_p_values<-p.adjust(pvalues, method = "fdr", n = length(pvalues))
 
 
 
-
 ####################################################################################
 
-##maSigPro Analysis
+## maSigPro Analysis
 
 ###################################################################################
 
-#This uses the same counts and samples as the paired DESeq2 analysis
+# This uses the same counts and samples as the paired DESeq2 analysis
 
-#Extract the normalised counts
+# Extract the normalised counts
 normalisedCounts<-counts(des_all, normalized = TRUE)
 
-#Currently the baseline samples are "BCG uninfected-pre-influenza" and "BCG-uninfected-post-influenza"
-#Duplicate these baseline samples to provide the additional 2 groups needed for this 4-group analysis
-#"BCG uninfected-pre-influenza" is duplicated to give "BCG infected-pre-influenza" 
-#"BCG-uninfected-post-influenza" is duplicated to give "BCG infected-post-influenza" 
+# Currently the baseline samples are "BCG uninfected-pre-influenza" and "BCG-uninfected-post-influenza"
+# Duplicate these baseline samples to provide the additional 2 groups needed for this 4-group analysis
+# "BCG uninfected-pre-influenza" is duplicated to give "BCG infected-pre-influenza" 
+# "BCG-uninfected-post-influenza" is duplicated to give "BCG infected-post-influenza" 
 
-#TO do this, make a set that are just the baseline samples
-#prepare the metadata:
+#To do this, make a set that just includes baseline samples
+
+# Prepare the metadata:
 meta$BCG<-as.character(meta$BCG)
-meta$BCG.Influenza<- as.character(meta$BCG.Influenza)
-#select out the baseline (timepoint 0 h) 
+meta$BCG.Influenza<- as.character(meta$BCG.Influenza) #where BCG.Influenza is a 4-factor based on influenza and BCG status (e.g. Preinfluenza-BCG infected)
+
+# Select out the baseline (timepoint 0 h) samples
 baseline<- meta$StoredSampleID[meta$Time.point_factor==0]
 meta_baseline<- meta[meta$StoredSampleID %in% baseline,]
 counts_baseline<- normalisedCounts[,colnames(normalisedCounts) %in% baseline]
-#Edit the BCG and BCG.Influenza variables so they become "BCG infected"
+
+# Edit the BCG and BCG.Influenza variables so they become "BCG infected"
 meta_baseline$BCG<-str_replace(meta_baseline$BCG, "No", "Yes")
 meta_baseline$BCG.Influenza<-str_replace(meta_baseline$BCG.Influenza, "Uninfected", "Infected")
-#Edit the sample names so they are named as BCG-infected baseline samples
-row.names(meta_baseline)<-str_replace(row.names(meta_baseline), "UN", "INF")
-colnames(counts_baseline)<-str_replace(colnames(counts_baseline), "UN", "INF")
-meta_baseline$StoredSampleID<- str_replace(meta_baseline$StoredSampleID, "UN", "INF")
 
-#Merge these new "BCG-infected" baseline samples with the main counts and metadata files, ready for maSigPro
+# Merge these new "BCG-infected" baseline samples with the main counts and metadata files, ready for maSigPro
 identical(colnames(meta), colnames(meta_baseline))   
 identical(row.names(normalisedCounts), row.names(counts_baseline))   
 counts_masig<-cbind(normalisedCounts, counts_baseline)
@@ -826,10 +793,9 @@ identical(row.names(tmeta), row.names(meta_baseline))
 meta_masig<-cbind(tmeta, meta_baseline)
 meta_masig<-as.data.frame(t(meta_masig))
 
-#Create Edesign for maSigPro, ensuring pre-influenza BCG infected is the control (first column after replicate)
-#because the comparison of interest will be pre-influenza BCG infected vs post influenza BCG infected
+#Create Edesign for maSigPro, ensuring pre-influenza BCG infected is the control (first column after replicate) because the comparison of interest will be pre-influenza BCG infected vs post influenza BCG infected
 edesignMeta <- meta_masig
-edesignMeta$Time.point_factor <- ordered(edesignMeta$Time.point_factor, levels = c("0", "6", "24", "72"))
+edesignMeta$Time.point_factor <- ordered(edesignMeta$Time.point_factor, levels = c("0", "6", "24"))
 edesign <- data.frame(ID = edesignMeta$StoredSampleID, Time = edesignMeta$Time.point_factor,  Replicate= 0,  Infected.Pre =0, Infected.Post =0, Uninfected.Pre=0, Uninfected.Post =0, Influenza=edesignMeta$BCG.Influenza)
 
 for (i in 1:nrow(edesign)){
