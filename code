@@ -59,7 +59,7 @@ meta$Time.point_factor<- as.factor(as.character(meta$Time.point))
 meta$Time.point_factor <- ordered(meta$Time.point_factor, levels = c("0", "6", "24", "72"))
 meta$Time.point<- as.numeric(meta$Time.point)
 
-
+meta_original<-meta
 
 ## Read in cibersort data and combine with metadata (cibersort data was generated using the normalised counts below at https://cibersortx.stanford.edu/)
 ciber2<- read.csv("CIBERSORTx.csv", header=TRUE)
@@ -1066,44 +1066,44 @@ PlotsData2<- PlotsData[(PlotsData$Time.point_factor=="0" |(PlotsData$Time.point_
 metaPlots2<- metaPlots[(metaPlots$Time.point_factor=="0" |(metaPlots$Time.point_factor=="6" & metaPlots$BCG=="Yes")),]
 
 # For the top 6 hub genes, make a separate df in order to calculate and then plot delta-expression
-hubgenes1<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000134321"| colnames(PlotsData2)== "StoredSampleID"])
-identical(row.names(metaPlots2), hubgenes1$StoredSampleID)  
+hubgenes1<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000134321"| colnames(PlotsData2)== "Sample.number"])
+identical(row.names(metaPlots2), hubgenes1$Sample.number)  
 hub1<-cbind(hubgenes1, metaPlots2)
 hub1<- hub1[,-2]
 hub1$StoredSampleID
 df1<- hub1%>% pivot_wider(id_cols= c(Patient.ID, Influenza,changeGr, change.GR), names_from=c(Time.point), values_from=c(ENSG00000134321))
 df1$RSAD2_d6h<- df1$`6`/ df1$`0`
 
-hubgenes2<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000157601"| colnames(PlotsData2)== "StoredSampleID"])
-identical(row.names(metaPlots2), hubgenes2$StoredSampleID)  
+hubgenes2<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000157601"| colnames(PlotsData2)== "Sample.number"])
+identical(row.names(metaPlots2), hubgenes2$Sample.number)  
 hub2<-cbind(hubgenes2, metaPlots2)
 hub2<- hub2[,-2]
 df2<- hub2%>% pivot_wider(id_cols= c(Patient.ID, Influenza,changeGr, change.GR), names_from=c( Time.point), values_from=c(ENSG00000157601))
 df2$MX1_d6h<- df2$`6`/ df2$`0`
 
-hubgenes3<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000126709"| colnames(PlotsData2)== "StoredSampleID"])
-identical(row.names(metaPlots2), hubgenes3$StoredSampleID)  
+hubgenes3<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000126709"| colnames(PlotsData2)== "Sample.number"])
+identical(row.names(metaPlots2), hubgenes3$Sample.number)  
 hub3<-cbind(hubgenes3, metaPlots2)
 hub3<- hub3[,-2]
 df3<- hub3%>% pivot_wider(id_cols= c(Patient.ID, Influenza,changeGr, change.GR), names_from=c( Time.point), values_from=c(ENSG00000126709))
 df3$IFI6_d6h<- df3$`6`/ df3$`0`
 
-hubgenes4<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000089127"| colnames(PlotsData2)== "StoredSampleID"])
-identical(row.names(metaPlots2), hubgenes4$StoredSampleID)  
+hubgenes4<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000089127"| colnames(PlotsData2)== "Sample.number"])
+identical(row.names(metaPlots2), hubgenes4$Sample.number)  
 hub4<-cbind(hubgenes4, metaPlots2)
 hub4<- hub4[,-2]
 df4<- hub4%>% pivot_wider(id_cols= c(Patient.ID, Influenza,changeGr, change.GR), names_from=c( Time.point), values_from=c(ENSG00000089127))
 df4$OAS1_d6h<- df4$`6`/ df4$`0`
 
-hubgenes5<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000111331"| colnames(PlotsData2)== "StoredSampleID"])
-identical(row.names(metaPlots2), hubgenes5$StoredSampleID)  
+hubgenes5<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000111331"| colnames(PlotsData2)== "Sample.number"])
+identical(row.names(metaPlots2), hubgenes5$Sample.number)  
 hub5<-cbind(hubgenes5, metaPlots2)
 hub5<- hub5[,-2]
 df5<- hub5%>% pivot_wider(id_cols= c(Patient.ID, Influenza,changeGr, change.GR), names_from=c( Time.point), values_from=c(ENSG00000111331))
 df5$OAS3_d6h<- df5$`6`/ df5$`0`
 
-hubgenes6<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000111335"| colnames(PlotsData2)== "StoredSampleID"])
-identical(row.names(metaPlots2), hubgenes6$StoredSampleID)  
+hubgenes6<-tibble(PlotsData2[,colnames(PlotsData2)=="ENSG00000111335"| colnames(PlotsData2)== "Sample.number"])
+identical(row.names(metaPlots2), hubgenes6$Sample.number)  
 hub6<-cbind(hubgenes6, metaPlots2)
 hub6<- hub6[,-2]
 df6<- hub6%>% pivot_wider(id_cols= c(Patient.ID, Influenza,changeGr, change.GR), names_from=c( Time.point), values_from=c(ENSG00000111335))
