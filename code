@@ -33,7 +33,9 @@ library(MASS)
 
 ## Read in  the metadata and counts
 meta<- read.csv("metadata_bcg_flu.csv", header=TRUE)
-row.names(meta)<- meta$StoredSampleID
+meta<-meta %>%
+  mutate(Sample.number = sub(" ", ".", Sample.number))
+row.names(meta)<- meta$Sample.number
 counts<-read.csv("gene_counts_matrix.csv", header=TRUE)
 row.names(counts) <- counts$X
 counts<- counts[,-1]
@@ -44,15 +46,17 @@ identical(row.names(meta), colnames(counts))
 ## Prepare the metadata
 meta$BCG<- as.factor(meta$BCG)
 meta$Influenza<- as.factor(meta$Influenza)
-meta$Influenza <- ordered(meta$Influenza, levels = c("Pre", "Post"))
+meta$Influenza <- ordered(meta$Influenza, levels = c("Pre-influenza", "Post-influenza"))
 meta$Influenza_un<- meta$Influenza
 meta$Time.point_factor<- as.factor(as.character(meta$Time.point))
 meta$Time.point_factor <- ordered(meta$Time.point_factor, levels = c("0", "6", "24", "72"))
-meta$BCG.Influenza<-as.factor(meta$BCG.Influenza)
-meta$BCG.Influenza<-ordered(meta$BCG.Influenza, levels = c( "Uninfected.Pre", "Uninfected.Post", "Infected.Pre", "Infected.Post"))
 meta<- mutate(meta, changeGr = ifelse(change.GR>=100, "Up", "Down"))
 meta$changeGr<-ordered(meta$changeGr, levels=c("Down", "Up"))
 meta$Time.point<- as.numeric(meta$Time.point)
+meta$BCG.Influenza<-paste(meta$BCG, meta$Influenza)
+meta$BCG.Influenza<-as.factor(meta$BCG.Influenza)
+meta$BCG.Influenza<-ordered(meta$BCG.Influenza, levels = c( "BCG-No Pre-influenza", "BCG-No Post-influenza", "BCG-Yes Pre-influenza", "BCG-Yes Post-influenza"))
+
 
 
 ## Read in cibersort data and combine with metadata (cibersort data was generated using the normalised counts below at https://cibersortx.stanford.edu/)
@@ -143,14 +147,14 @@ PCA_counts<-counts(des.obj, normalized = TRUE)
 PCA_counts<-t(log2(PCA_counts+1))
 row.names(PCA_counts)
 identical(row.names(meta), row.names(PCA_counts))   
-PCAdata<-cbind(PCA_counts, meta)
-PCAdata<- as.data.frame(PCAdata[,1:22632])
-pca.obj1 <- prcomp(PCAdata)
+alldata<-cbind(PCA_counts, meta)
+df1<- as.data.frame(alldata[,1:22632])
+pca.obj1 <- prcomp(df1)
 summary(pca.obj1)
 
 # Plot PC1 and 2
 dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= alldata$Sex, "Timepoint"= alldata$Time.point_factor, "Plate"= alldata$Plate_new, "ID"=alldata$StoredSampleID, "dGR" =alldata$change.GR, pca.obj1$x[,1:2])
-# Plate
+#Plate
 (p1<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Plate), show.legend = TRUE) + 
     stat_ellipse(aes(x = PC1, y = PC2, col = Plate))+
@@ -164,12 +168,13 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# BCG 
+#BCG 
 (p2<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = BCG), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC1, y = PC2, col = BCG))+
     labs(title="B", colour="BCG") +
     scale_color_manual(labels= c("Uninfected", "Infected"), values=c("springgreen4","purple"))+
-    xlim(-160, 160)+
+    xlim(-180, 180)+
     ylim(-150, 150)+
     theme(plot.title = element_text(color="black", size=14, face="bold"))+
     theme_minimal()+
@@ -178,9 +183,10 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Influenza
+#Influenza
 (p3<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Influenza), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC1, y = PC2, col = Influenza))+
     labs(title="C", colour="Influenza") +
     scale_color_manual(values=c("mediumblue","magenta"))+
     xlim(-160, 160)+
@@ -191,9 +197,10 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Timepoint
+#Timepoint
 (p4<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Timepoint), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC1, y = PC2, col = Timepoint))+
     labs(title="D", colour="Timepoint (h)") +
     xlim(-160, 160)+
     ylim(-150, 150)+
@@ -203,9 +210,10 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Sex
+#Sex
 (p5<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = Sex), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC1, y = PC2, col = Sex))+
     labs(title="E", colour="Sex") +
     scale_color_manual(values=c("red","blue"))+
     xlim(-160, 160)+
@@ -216,9 +224,10 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Change in growth ratio
+#Change in growth ratio
 (p6<-ggplot(data = dtp1) + 
     geom_point(aes(x = PC1, y = PC2, col = dGR), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC1, y = PC2, col = dGR))+
     labs(title="F", colour="Change in Growth Ratio (%)") +
     scale_color_gradientn(colours = rainbow(5)) +
     xlim(-160, 160)+
@@ -232,7 +241,6 @@ dtp1 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
 # PC 3 and 4
 dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= alldata$Sex, "Timepoint"= alldata$Time.point_factor, "Plate"= alldata$Plate_new, "ID"= alldata$StoredSampleID, "dGR" =alldata$change.GR, pca.obj1$x[,3:4])
 
-# Plate
 (p11<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Plate), show.legend = TRUE) + 
     xlim(-120, 120)+
@@ -247,9 +255,10 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# BCG
+#BCG
 (p12<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = BCG), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC3, y = PC4, col = BCG))+
     labs(title="B", colour="BCG") +
     scale_color_manual(labels= c("Uninfected", "Infected"), values=c("springgreen4","purple"))+
     xlim(-120, 120)+
@@ -261,9 +270,10 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Influenza
+#Influenza
 (p13<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Influenza), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC3, y = PC4, col = Influenza))+
     labs(title="C", colour="Influenza") +
     scale_color_manual(values=c("mediumblue","magenta"))+
     xlim(-120, 120)+
@@ -275,9 +285,10 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Timepoint
+#Timepoint
 (p14<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Timepoint), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC3, y = PC4, col = Timepoint))+
     labs(title="D", colour="Timepoint (h)") +
     xlim(-120, 120)+
     ylim(-120, 120)+
@@ -288,9 +299,10 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Sex
+#Sex
 (p15<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = Sex), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC3, y = PC4, col = Sex))+
     xlim(-120, 120)+
     ylim(-120, 120)+  
     labs(title="E", colour="Sex") +
@@ -302,9 +314,10 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Change in growth ratio
+#Change in growth ratio
 (p16<-ggplot(data = dtp2) + 
     geom_point(aes(x = PC3, y = PC4, col = dGR), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC3, y = PC4, col = dGR))+
     xlim(-120, 120)+
     ylim(-120, 120)+
     labs(title="F", colour="Change in Growth Ratio (%)") +
@@ -315,10 +328,11 @@ dtp2 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
+
 # PC 5 and 6
 dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= alldata$Sex, "Timepoint"= alldata$Time.point_factor, "Plate"= alldata$Plate_new, "ID"= alldata$StoredSampleID, "dGR" =alldata$change.GR,  pca.obj1$x[,5:6])
 
-# Plate
+#Plate
 (p21<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Plate), show.legend = TRUE) + 
     labs(title="A", colour="Plate") +
@@ -331,9 +345,10 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# BCG
+#BCG
 (p22<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = BCG), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC5, y = PC6, col = BCG))+
     labs(title="B", colour="BCG") +
     scale_color_manual(labels= c("Uninfected", "Infected"), values=c("springgreen4","purple"))+
     xlim(-70, 70)+
@@ -345,9 +360,10 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Influenza
+#Influenza
 (p23<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Influenza), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC5, y = PC6, col = Influenza))+
     labs(title="C", colour="Influenza") +
     scale_color_manual(values=c("mediumblue","magenta"))+
     xlim(-70, 70)+
@@ -359,9 +375,10 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Timepoint
+#Timepoint
 (p24<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Timepoint), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC5, y = PC6, col = Timepoint))+
     labs(title="D", colour="Timepoint (h)") +
     xlim(-70, 70)+
     ylim(-70, 70)+
@@ -372,9 +389,10 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Sex
+#Sex
 (p25<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = Sex), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC5, y = PC6, col = Sex))+
     xlim(-70, 70)+
     ylim(-70, 70)+
     labs(title="E", colour="Sex") +
@@ -386,9 +404,10 @@ dtp3 <- data.frame("BCG" = alldata$BCG, "Influenza"= alldata$Influenza,"Sex"= al
           axis.title=element_text(size=12, face="plain"))+
     theme(plot.title = element_text(color="black", size=14, face="bold")))
 
-# Change in growth ratio
+#Change in growth ratio
 (p26<-ggplot(data = dtp3) + 
     geom_point(aes(x = PC5, y = PC6, col = dGR), show.legend = TRUE) + 
+    stat_ellipse(aes(x = PC5, y = PC6, col = dGR))+
     xlim(-70, 70)+
     ylim(-70, 70)+
     labs(title="F", colour="Change in Growth Ratio (%)") +
@@ -432,8 +451,8 @@ genes_contributions_pca_1_ordered <- genes_contributions[order(-genes_contributi
 des.obj_original<-des.obj
 
 # BCG uninfected, pre flu
-unPre<- meta$StoredSampleID[meta$BCG.Influenza== "Uninfected.Pre"]
-meta_unPre<<- meta[meta$StoredSampleID %in% unPre,]
+unPre<- meta$Sample.number[meta$BCG.Influenza== "BCG-No Pre-influenza"]
+meta_unPre<<- meta[meta$Sample.number %in% unPre,]
 des_unPre<- des.obj_original[, unPre]
 mm <- model.matrix(~ Time.point , data = data.frame(colData(des_unPre)))
 design(des_unPre) <- mm
@@ -448,8 +467,8 @@ res_unPre <- results(des_unPre,
 resOrdered_unPre <- res_unPre[order(res_unPre$padj),]
 
 # BCG uninfected, post flu
-unPost<- meta$StoredSampleID[meta$BCG.Influenza== "Uninfected.Post"]
-meta_unPost<<- meta[meta$StoredSampleID %in% unPost,]
+unPost<- meta$Sample.number[meta$BCG.Influenza== "BCG-No Post-influenza"]
+meta_unPost<<- meta[meta$Sample.number %in% unPost,]
 des_unPost<- des.obj_original[, unPost]
 mm <- model.matrix(~ Time.point , data = data.frame(colData(des_unPost)))
 design(des_unPost) <- mm
@@ -464,8 +483,8 @@ res_unPost <- results(des_unPost,
 resOrdered_unPost <- res_unPost[order(res_unPost$padj),]
 
 # BCG infected, pre flu
-inPre<- meta$StoredSampleID[meta$BCG.Influenza== "Infected.Pre"]
-meta_inPre<<- meta[meta$StoredSampleID %in% inPre,]
+inPre<- meta$Sample.number[meta$BCG.Influenza== "BCG-Yes Pre-influenza"]
+meta_inPre<<- meta[meta$Sample.number %in% inPre,]
 des_inPre<- des.obj_original[, inPre]
 mm <- model.matrix(~ Time.point , data = data.frame(colData(des_inPre)))
 design(des_inPre) <- mm
@@ -480,8 +499,8 @@ res_inPre <- results(des_inPre,
 resOrdered_inPre <- res_inPre[order(res_inPre$padj),]
 
 # BCG infected, post flu
-inPost<- meta$StoredSampleID[meta$BCG.Influenza== "Infected.Post"]
-meta_inPost<<- meta[meta$StoredSampleID %in% unPost,]
+inPost<- meta$Sample.number[meta$BCG.Influenza== "BCG-Yes Post-influenza"]
+meta_inPost<<- meta[meta$Sample.number %in% unPost,]
 des_inPost<- des.obj_original[, inPost]
 mm <- model.matrix(~ Time.point , data = data.frame(colData(des_inPost)))
 design(des_inPost) <- mm
