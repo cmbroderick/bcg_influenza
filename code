@@ -44,18 +44,20 @@ counts<- counts[,-1]
 identical(row.names(meta), colnames(counts))   
 
 ## Prepare the metadata
-meta$BCG<- as.factor(meta$BCG)
-meta$Influenza<- as.factor(meta$Influenza)
-meta$Influenza <- ordered(meta$Influenza, levels = c("Pre-influenza", "Post-influenza"))
-meta$Influenza_un<- meta$Influenza
-meta$Time.point_factor<- as.factor(as.character(meta$Time.point))
-meta$Time.point_factor <- ordered(meta$Time.point_factor, levels = c("0", "6", "24", "72"))
-meta<- mutate(meta, changeGr = ifelse(change.GR>=100, "Up", "Down"))
-meta$changeGr<-ordered(meta$changeGr, levels=c("Down", "Up"))
-meta$Time.point<- as.numeric(meta$Time.point)
 meta$BCG.Influenza<-paste(meta$BCG, meta$Influenza)
 meta$BCG.Influenza<-as.factor(meta$BCG.Influenza)
 meta$BCG.Influenza<-ordered(meta$BCG.Influenza, levels = c( "BCG-No Pre-influenza", "BCG-No Post-influenza", "BCG-Yes Pre-influenza", "BCG-Yes Post-influenza"))
+meta$BCG<- str_replace(meta$BCG, "BCG-No", "No")
+meta$BCG<- str_replace(meta$BCG, "BCG-Yes", "Yes")
+meta$Influenza<- str_replace(meta$Influenza, "Pre-influenza", "Pre")
+meta$Influenza<- str_replace(meta$Influenza, "Post-influenza", "Post")
+meta$BCG<- as.factor(meta$BCG)
+meta$Influenza<- as.factor(meta$Influenza)
+meta$Influenza_un<- as.factor(meta$Influenza) #unordered
+meta$Influenza <- ordered(meta$Influenza, levels = c("Pre", "Post"))
+meta$Time.point_factor<- as.factor(as.character(meta$Time.point))
+meta$Time.point_factor <- ordered(meta$Time.point_factor, levels = c("0", "6", "24", "72"))
+meta$Time.point<- as.numeric(meta$Time.point)
 
 
 
@@ -500,7 +502,7 @@ resOrdered_inPre <- res_inPre[order(res_inPre$padj),]
 
 # BCG infected, post flu
 inPost<- meta$Sample.number[meta$BCG.Influenza== "BCG-Yes Post-influenza"]
-meta_inPost<<- meta[meta$Sample.number %in% unPost,]
+meta_inPost<- meta[meta$Sample.number %in% unPost,]
 des_inPost<- des.obj_original[, inPost]
 mm <- model.matrix(~ Time.point , data = data.frame(colData(des_inPost)))
 design(des_inPost) <- mm
@@ -549,12 +551,12 @@ des.obj_i<-des.obj_original[keep,]
 ###########################################################
 
 # Select samples from 0, 6, 24 h timepoints and exclude the 2 subjects with incomplete sample sets
-select<-meta$StoredSampleID[(meta$Time.point=="0" | meta$Time.point=="6" | meta$Time.point=="24") & meta$Patient.ID !="H" & meta$Patient.ID !="O"]
-meta<- meta[meta$StoredSampleID %in% select,]
+select<-meta$Sample.number[(meta$Time.point=="0" | meta$Time.point=="6" | meta$Time.point=="24") & meta$Patient.ID !="H" & meta$Patient.ID !="O"]
+meta<- meta[meta$Sample.number %in% select,]
 des_all<-des.obj_i[,select]
 identical(row.names(meta), colnames(des_all))
-des_all$Influenza_un<- relevel(des_all$Influenza_un, ref= "Pre")
-des_all$BCG<- relevel(des_all$BCG, ref= "No")
+des_all$Influenza_un<- relevel(des_all$Influenza_un, ref= "Pre-influenza")
+des_all$BCG<- relevel(des_all$BCG, ref= "BCG-No")
 
 #Remove lowly expressed genes
 keep2 <- rowSums(counts(des_all) >= 30 ) >= 5 
@@ -638,8 +640,8 @@ output<-Annotate_Data(resOrdered)
 
 library(pheatmap)
 
-logf<- read.csv("Significant interaction genes_LFC.csv") #load dataframe containing LFC of the interaction genes
-pval<- read.csv("Significant interaction genes_p values.csv") #load dataframe containing adjusted p values of the interaction genes
+logf<- read.csv("Significant interaction genes_LFC.csv") #load dataframe containing LFC of the significant BCG: Influenza interaction genes
+pval<- read.csv("Significant interaction genes_p values.csv") #load dataframe containing adjusted p values of the significant BCG: Influenza interaction genes
 
 row.names(logf) <- logf$Gene.symbol
 y<-as.matrix(logf[,3:6])
