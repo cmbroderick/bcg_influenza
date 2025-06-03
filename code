@@ -796,8 +796,8 @@ meta$BCG<-as.character(meta$BCG)
 meta$BCG.Influenza<- as.character(meta$BCG.Influenza) #where BCG.Influenza is a 4-factor based on influenza and BCG status (e.g. Preinfluenza-BCG infected)
 
 # Select out the baseline (timepoint 0 h) samples
-baseline<- meta$StoredSampleID[meta$Time.point_factor==0]
-meta_baseline<- meta[meta$StoredSampleID %in% baseline,]
+baseline<- meta$Sample.number[meta$Time.point_factor==0]
+meta_baseline<- meta[meta$Sample.number %in% baseline,]
 counts_baseline<- normalisedCounts[,colnames(normalisedCounts) %in% baseline]
 
 # Edit the BCG and BCG.Influenza variables so they become "BCG infected"
