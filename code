@@ -925,7 +925,7 @@ for (i in 1:nrow(edesign)){
 
 # Order by replicate and timepoint, remove unnecessary columns
 edesign <- edesign[order(edesign$Replicate),]
-edesign$Time <- as.numeric(edesign$Time)
+edesign$Time <- as.numeric(as.character(edesign$Time))
 rownames(edesign) <- edesign$ID
 edesign <- edesign[,-1]
 edesign<-edesign[,-7]
