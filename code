@@ -1143,9 +1143,7 @@ df6$OAS2_d6h<- df6$`6`/ df6$`0`
     theme(axis.title = element_text(size = 12, face="bold"))+
     theme(legend.title = element_text(size = 12, face="bold"))+
     theme(legend.text = element_text(size = 12)) +
-    theme(plot.title = element_text(color="black", size=16, face="bold")) +
-    geom_signif(y_position = c(7,7), xmin = c(0.85,1.85),xmax = c(1.15,2.15), annotation = c("NS","p<0.05"),
-                tip_length = 0.01, fontface="bold"))
+    theme(plot.title = element_text(color="black", size=16, face="bold")))
 
 
 #Comparisons of delta-expression, Restrictors vs Non-restrictors, pre and post-influenza
