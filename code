@@ -604,11 +604,18 @@ res <- results(des_all,
                parallel=FALSE,
                name="BCGYes.Influenza_unPost")
 
+#BCG plus BCG:Influenza interaction
+res <- results(des_all,
+               independentFiltering=TRUE,
+               alpha=0.05,
+               pAdjustMethod="BH",
+               parallel=FALSE,
+               contrast=list(c("BCGYes", "BCGYes.Influenza_unPost")))
 
 # For each results table, order by adjusted p value 
 resOrdered <- res[order(res$padj),]
 summary(res)   
-sum(res$padj < 0.05, na.rm=TRUE) # 
+sum(res$padj < 0.05, na.rm=TRUE) 
 
 # Annotate each results file
 mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
@@ -793,7 +800,7 @@ normalisedCounts<-counts(des_all, normalized = TRUE)
 
 # Prepare the metadata:
 meta$BCG<-as.character(meta$BCG)
-meta$BCG.Influenza<- as.character(meta$BCG.Influenza) #where BCG.Influenza is a 4-factor based on influenza and BCG status (e.g. Preinfluenza-BCG infected)
+meta$BCG.Influenza<- as.character(meta$BCG.Influenza) #where BCG.Influenza is a 4-factor based on influenza and BCG status (e.g."BCG-No Pre-influenza")
 
 # Select out the baseline (timepoint 0 h) samples
 baseline<- meta$Sample.number[meta$Time.point_factor==0]
@@ -802,7 +809,12 @@ counts_baseline<- normalisedCounts[,colnames(normalisedCounts) %in% baseline]
 
 # Edit the BCG and BCG.Influenza variables so they become "BCG infected"
 meta_baseline$BCG<-str_replace(meta_baseline$BCG, "No", "Yes")
-meta_baseline$BCG.Influenza<-str_replace(meta_baseline$BCG.Influenza, "Uninfected", "Infected")
+meta_baseline$BCG.Influenza<-str_replace(meta_baseline$BCG.Influenza, "No", "Yes")
+
+#Edit the sample names so each one is unique
+row.names(meta_baseline)<-str_replace(row.names(meta_baseline), "Sample", "Samplex")
+colnames(counts_baseline)<-str_replace(colnames(counts_baseline), "Sample", "Samplex")
+meta_baseline$Sample.number<- str_replace(meta_baseline$Sample.number, "Sample", "Samplex")
 
 # Merge these new "BCG-infected" baseline samples with the main counts and metadata files, ready for maSigPro
 identical(colnames(meta), colnames(meta_baseline))   
@@ -813,115 +825,119 @@ tmeta<-t(meta)
 identical(row.names(tmeta), row.names(meta_baseline))   
 meta_masig<-cbind(tmeta, meta_baseline)
 meta_masig<-as.data.frame(t(meta_masig))
+identical(row.names(meta_masig),colnames(counts_masig))
 
 #Create Edesign for maSigPro, ensuring pre-influenza BCG infected is the control (first column after replicate) because the comparison of interest will be pre-influenza BCG infected vs post influenza BCG infected
 edesignMeta <- meta_masig
 edesignMeta$Time.point_factor <- ordered(edesignMeta$Time.point_factor, levels = c("0", "6", "24"))
-edesign <- data.frame(ID = edesignMeta$StoredSampleID, Time = edesignMeta$Time.point_factor,  Replicate= 0,  Infected.Pre =0, Infected.Post =0, Uninfected.Pre=0, Uninfected.Post =0, Influenza=edesignMeta$BCG.Influenza)
+edesign <- data.frame(ID = edesignMeta$Sample.number, Time = edesignMeta$Time.point_factor,  Replicate= 0,  Infected.Pre =0, Infected.Post =0, Uninfected.Pre=0, Uninfected.Post =0,BCG.Influenza=edesignMeta$BCG.Influenza)
 
 for (i in 1:nrow(edesign)){
-  data <- edesign[edesign$ID==edesignMeta$StoredSampleID[i],]
-  if(edesign$ID[i] %in% edesignMeta$StoredSampleID){
+  data <- edesign[edesign$ID==edesignMeta$Sample.number[i],]
+  if(edesign$ID[i] %in% edesignMeta$Sample.number){
     
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Pre" )
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Pre-influenza" )
     ){
       edesign$Uninfected.Pre[i] <- 1
     }
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Post" )
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Post-influenza" )
     ){
       edesign$Uninfected.Post[i] <- 1
     }
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Infected.Pre" )
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Pre-influenza" )
     ){
       edesign$Infected.Pre[i] <- 1
     }
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Infected.Post" )
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Post-influenza" )
     ){
       edesign$Infected.Post[i] <- 1
     }
   }
 }
 
+
 for (i in 1:nrow(edesign)){
-  data <- edesign[edesign$ID==edesignMeta$StoredSampleID[i],]
-  if(edesign$ID[i] %in% edesignMeta$StoredSampleID){
+  data <- edesign[edesign$ID==edesignMeta$Sample.number[i],]
+  if(edesign$ID[i] %in% edesignMeta$Sample.number){
     
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Pre" &
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Pre-influenza" &
        (!is.na(data$Time)) & data$Time==0)
     ){
       edesign$Replicate[i] <- 1
     }
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Pre" &
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Pre-influenza" &
        (!is.na(data$Time)) & data$Time==6)
     ){
       edesign$Replicate[i] <- 2
     }
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Pre" &
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Pre-influenza" &
        (!is.na(data$Time)) & data$Time==24)
     ){
       edesign$Replicate[i] <- 3
     }
     if(
-      ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Post" &
+      ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Post-influenza" &
        (!is.na(data$Time)) & data$Time==0)
     ){
       edesign$Replicate[i] <- 4
     }}
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Post" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Post-influenza" &
      (!is.na(data$Time)) & data$Time==6)
   ){
     edesign$Replicate[i] <- 5
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Uninfected.Post" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-No Post-influenza" &
      (!is.na(data$Time)) & data$Time==24)
   ){
     edesign$Replicate[i] <- 6
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Infected.Pre" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Pre-influenza" &
      (!is.na(data$Time)) & data$Time==0)
   ){
     edesign$Replicate[i] <- 7
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Infected.Pre" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Pre-influenza" &
      (!is.na(data$Time)) & data$Time==6)
   ){
     edesign$Replicate[i] <- 8
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Infected.Pre" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Pre-influenza" &
      (!is.na(data$Time)) & data$Time==24)
   ){
     edesign$Replicate[i] <- 9
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Infected.Post" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Post-influenza" &
      (!is.na(data$Time)) & data$Time==0)
   ){
     edesign$Replicate[i] <- 10
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Infected.Post" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Post-influenza" &
      (!is.na(data$Time)) & data$Time==6)
   ){
     edesign$Replicate[i] <- 11
   }
   if(
-    ((!is.na(data$Influenza)) & data$Influenza=="Infected.Post" &
+    ((!is.na(data$BCG.Influenza)) & data$BCG.Influenza=="BCG-Yes Post-influenza" &
      (!is.na(data$Time)) & data$Time==24)
   ){
     edesign$Replicate[i] <- 12
+  }
 }
+
 
 # Order by replicate and timepoint, remove unnecessary columns
 edesign <- edesign[order(edesign$Replicate),]
