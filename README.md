@@ -28,13 +28,7 @@ pheatmap (version 1.0.12) https://cran.r-project.org/web/packages/pheatmap/. Dep
 
 
 
-The data is available from ArrayExpress, accession E-MTAB-15137.
-Instructions to run the code are a
-Expected output: Lists of significantly differentially expressed genes (Supplementary Tables 3-22)
-
-
-
- 
-
- 
-
+The data is available to download from ArrayExpress, accession E-MTAB-15137.
+Sequential instructions to run the code can be found in the Code file.
+Expected run time to run all code: ~1 hour on a "normal" desktop computer.
+Expected output: Lists of significantly differentially expressed genes (Supplementary Tables 3-22).
