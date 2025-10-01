@@ -10,6 +10,8 @@ Affiliations:
 3 Department of Paediatric Infectious Diseases, Imperial College Healthcare NHS Trust, London, UK.
 
 
+
+
 The  software/ R packages used in the analyses are listed below, with the versions and installation instructions provided. All are typically installed within minutes on a "normal" desktop computer. No non-standard hardware required. 
 
 R (version 4.0.4).
@@ -28,7 +30,11 @@ pheatmap (version 1.0.12) https://cran.r-project.org/web/packages/pheatmap/. Dep
 
 
 
+
 The data is available to download from ArrayExpress, accession E-MTAB-15137.
+
 Sequential instructions to run the code can be found in the Code file.
+
 Expected run time to run all code: ~1 hour on a "normal" desktop computer.
+
 Expected output: Lists of significantly differentially expressed genes (Supplementary Tables 3-22).
