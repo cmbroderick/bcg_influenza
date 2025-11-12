@@ -673,9 +673,9 @@ identical(row.names(metaPlots), rownames(df))
 PlotsData<-cbind(df, metaPlots)
 
 # Subset the dataset for plotting
-x6un<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$BCG == "No",] #6 h timepoint, BCG uninfected only
-x6pre<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Pre",] #6 h timepoint,Pre-influenza only
-x6post<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Post",] #6 h timepoint,Post-influenza only
+x0un<-PlotsData[PlotsData$Time.point_factor== "0" & PlotsData$BCG == "No",] #0 h timepoint, BCG uninfected only
+x6pre<-PlotsData[(PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Pre" &PlotsData$BCG == "Yes")|(PlotsData$Time.point_factor== "0" & PlotsData$Influenza == "Pre"),] #Pre-influenza 0h and infected- 6 h
+x6post<-PlotsData[PlotsData$Time.point_factor== "6" & PlotsData$Influenza == "Post"&PlotsData$BCG == "Yes"|(PlotsData$Time.point_factor== "0" & PlotsData$Influenza == "Post"),] #Post-influenza 0h and infected- 6 h
 
 
 # Plot the effect of influenza on IFI44L expressoin
