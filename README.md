@@ -26,8 +26,6 @@ rstatix (version 0.7.2). https://cran.r-project.org/web/packages/rstatix/index.h
  
 ggplot2 (version 3.5.1) https://cran.r-project.org/web/packages/ggplot2/index.html. Dependencies: R. No system requirements.
 
-ggsignif Ahlmann-Eltze, C. & Patil, P. ggsignif: R Package for Displaying Significance Brackets for 'ggplot2'. PsyArxiv (2021).
-
 pheatmap (version 1.0.12) https://cran.r-project.org/web/packages/pheatmap/. Dependencies: R. No system requirements. (Kolde, R. pheatmap: Pretty Heatmaps, 2018).
 
 ggbreak (version 0.1.4) https://cran.r-project.org/web/packages/ggbreak/index.html. Dependencies: R. No system requirements. (Xu, S., Chen, M., Feng, T., et al. Use ggbreak to Effectively Utilize Plotting Space to Deal With Large Datasets and Outliers. Front Genet 12, 774846, 2021).
